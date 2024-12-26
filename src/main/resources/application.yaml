@@ -1,0 +1,66 @@
+#----------------------------------
+# Defined for each environment
+#----------------------------------
+env.rms:
+  server.port: 7004
+  server.tls.port: 7014
+  h2.user: sa
+  h2.password:
+  h2.script: classpath:init-rms.ddl
+
+#----------------------------------
+# MicroProfile Configurations
+#----------------------------------
+mp:
+  openapi:
+    model.reader: io.extact.msa.rms.platform.fw.webapi.openapi.HeaderAuthDecoratedModelReader
+
+#----------------------------------
+# Helidon Configurations
+#----------------------------------
+server:
+  port: ${env.rms.server.port}
+  access-log:
+    format: "%t %h %r %s %b %D"
+javax.sql.DataSource:
+  rmsDataSource:
+    dataSourceClassName: org.h2.jdbcx.JdbcDataSource
+    dataSource:
+      url: jdbc:h2:mem:rms;INIT=RUNSCRIPT FROM '${env.rms.h2.script}'
+      user: ${env.rms.h2.user}
+      password: ${env.rms.h2.password:""}
+tracing:
+  service: UserService
+
+#----------------------------------
+# Applications Configurations
+#----------------------------------
+rms:
+  app:
+    name: UserService
+  persistence:
+    apiType: jpa
+    csv:
+      type: temporary
+      # following only used when type is "permanent" or ""temporary"
+      permanent:
+        directory: ./data
+        fileName:
+          useraccount: userAccount.csv
+      temporary:
+        fileName:
+          useraccount: temporary/userAccountTemp.csv
+  healthCheck:
+    otherChecks:
+      - io.extact.msa.rms.platform.core.health.DbReadinessCheck
+  openapi:
+    title: ユーザサービス公開API
+  env:
+    main.jar: msa-rms-service-user\.jar$
+  debug:
+    configdump:
+      enable: true
+      filter.pattern:
+        - security
+        - env.rms
+        - server
